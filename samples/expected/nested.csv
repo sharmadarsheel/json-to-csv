@@ -1,0 +1,3 @@
+id,user.name,user.contact.email,user.contact.phone,location.city,location.country
+101,Alice Wonderland,alice@wonder.land,+1-555-0199,Oxford,UK
+102,Bob Builder,bob@builder.org,+1-555-0144,London,UK

@@ -1,0 +1,4 @@
+id,name,tier,score,verified
+1,Alpha,Gold,,
+2,Beta,,98.5,
+3,Gamma,Silver,75,true

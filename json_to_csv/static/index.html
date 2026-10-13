@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Python-powered JSON to CSV converter with deep flattening, array strategies, live preview, and RFC 4180 compliance.">
+  <title>JSON to CSV Studio (Python Edition)</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="theme-dark">
+  <div class="app-layout">
+    
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="brand">
+          <div class="brand-logo" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">JSON <span class="accent-text">to</span> CSV <span class="badge-python">Python</span></h1>
+            <p class="brand-subtitle">Private &bull; Fast &bull; Python Backend Engine</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="btn-reverse-modal" class="btn btn-secondary btn-sm" title="Convert CSV back to JSON">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+            <span>CSV &rarr; JSON</span>
+          </button>
+          <button id="theme-toggle" class="btn btn-icon" title="Toggle Theme" aria-label="Toggle Dark/Light Mode">
+            <svg id="icon-theme-sun" class="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg id="icon-theme-moon" class="theme-icon hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <!-- Step 1: Input -->
+      <section class="studio-card step-card" id="step-input" aria-labelledby="heading-step-1">
+        <div class="card-header">
+          <div class="step-badge">1</div>
+          <div>
+            <h2 id="heading-step-1" class="step-title">Input JSON</h2>
+            <p class="step-desc">Upload a .json file or paste your raw JSON string</p>
+          </div>
+          <div class="samples-dropdown-wrapper">
+            <label for="sample-select" class="sr-only">Try a Sample</label>
+            <select id="sample-select" class="form-select select-sm">
+              <option value="" disabled selected>✨ Try an Example...</option>
+              <option value="flat">Sample: Flat Objects</option>
+              <option value="nested">Sample: Deeply Nested</option>
+              <option value="arrays">Sample: Arrays & Tags</option>
+              <option value="mixed-keys">Sample: Mixed Keys</option>
+              <option value="unicode">Sample: Unicode & Emoji</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="tab-bar" role="tablist">
+            <button id="tab-upload" class="tab-button active" role="tab" aria-selected="true" aria-controls="panel-upload">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Upload File
+            </button>
+            <button id="tab-paste" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-paste">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+              Paste JSON
+            </button>
+          </div>
+
+          <div id="panel-upload" class="tab-panel active" role="tabpanel" aria-labelledby="tab-upload">
+            <div id="dropzone" class="dropzone" tabindex="0">
+              <input type="file" id="file-input" accept=".json,application/json,text/plain" class="file-input-hidden" aria-label="Upload JSON file">
+              <div class="dropzone-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
+                  <path d="M12 12v9"></path>
+                  <path d="m8 16 4-4 4 4"></path>
+                </svg>
+              </div>
+              <p class="dropzone-text"><strong>Drag & drop your JSON file here</strong> or <span class="dropzone-browse">browse files</span></p>
+              <p class="dropzone-hint">Processes instantly using Python 3 backend</p>
+              <div id="file-status" class="file-status hidden"></div>
+            </div>
+          </div>
+
+          <div id="panel-paste" class="tab-panel" role="tabpanel" aria-labelledby="tab-paste">
+            <div class="paste-container">
+              <div class="textarea-actions">
+                <span id="char-count" class="char-count">0 characters</span>
+                <div class="textarea-btn-group">
+                  <button id="btn-format-json" class="btn btn-ghost btn-xs" title="Format/Beautify JSON">Beautify</button>
+                  <button id="btn-clear-json" class="btn btn-ghost btn-xs" title="Clear text">Clear</button>
+                </div>
+              </div>
+              <textarea id="json-input" class="code-textarea" placeholder='[&#10;  { "id": 1, "name": "Alice", "role": "Engineer" },&#10;  { "id": 2, "name": "Bob", "role": "Designer" }&#10;]' spellcheck="false"></textarea>
+            </div>
+          </div>
+
+          <div id="object-key-picker-wrapper" class="object-key-picker hidden">
+            <div class="alert-info">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              <span>Detected collections in top-level object:</span>
+              <select id="select-object-key" class="form-select select-sm"></select>
+            </div>
+          </div>
+
+          <div id="validation-banner" class="validation-banner hidden" role="status" aria-live="polite">
+            <div class="validation-content">
+              <span id="validation-icon" class="validation-icon"></span>
+              <div id="validation-message" class="validation-message"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Step 2: Options & Column Selection -->
+      <section class="studio-card step-card" id="step-options" aria-labelledby="heading-step-2">
+        <div class="card-header">
+          <div class="step-badge">2</div>
+          <div>
+            <h2 id="heading-step-2" class="step-title">Conversion Options</h2>
+            <p class="step-desc">Customize flattening rules, array behavior, and delimiters</p>
+          </div>
+          <div class="presets-toolbar">
+            <button id="btn-save-preset" class="btn btn-ghost btn-xs" title="Save current settings">Save Preset</button>
+            <button id="btn-load-preset" class="btn btn-ghost btn-xs" title="Load preset">Load Preset</button>
+            <button id="btn-reset-options" class="btn btn-ghost btn-xs" title="Reset to defaults">Reset</button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="options-grid">
+            
+            <div class="form-group">
+              <label for="opt-delimiter" class="form-label" title="Character separating CSV cells">Delimiter</label>
+              <select id="opt-delimiter" class="form-select">
+                <option value="," selected>Comma ( , )</option>
+                <option value=";">Semicolon ( ; )</option>
+                <option value="&#9;">Tab ( \t )</option>
+                <option value="|">Pipe ( | )</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="opt-separator" class="form-label" title="Separator used to flatten nested keys">Nested Separator</label>
+              <select id="opt-separator" class="form-select">
+                <option value="." selected>Dot ( . )</option>
+                <option value="_">Underscore ( _ )</option>
+                <option value="/">Slash ( / )</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="opt-array-strategy" class="form-label" title="How array values should be handled">Array Strategy</label>
+              <select id="opt-array-strategy" class="form-select">
+                <option value="join" selected>Join Values (e.g. "a; b")</option>
+                <option value="index">Indexed Columns (e.g. tags.0, tags.1)</option>
+                <option value="explode">Explode Rows (1 row per element)</option>
+                <option value="json">Raw JSON String (e.g. '["a","b"]')</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="group-array-joiner">
+              <label for="opt-array-joiner" class="form-label" title="String joining array elements">Array Joiner</label>
+              <input type="text" id="opt-array-joiner" class="form-input" value="; " placeholder="; ">
+            </div>
+
+            <div class="form-group">
+              <label for="opt-max-depth" class="form-label" title="Recursion limit before stringifying as JSON">Max Flatten Depth</label>
+              <input type="number" id="opt-max-depth" class="form-input" value="10" min="1" max="50">
+            </div>
+
+            <div class="form-group">
+              <label for="opt-fill-value" class="form-label" title="Default cell text for missing or null properties">Missing Fill Value</label>
+              <input type="text" id="opt-fill-value" class="form-input" value="" placeholder="Empty (or NULL / N/A)">
+            </div>
+
+            <div class="form-group">
+              <label for="opt-bom" class="form-label" title="Include Byte Order Mark so Excel opens UTF-8 properly">File Encoding</label>
+              <select id="opt-bom" class="form-select">
+                <option value="false" selected>UTF-8 (Standard)</option>
+                <option value="true">UTF-8 with BOM (Excel Friendly)</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="toggles-row">
+            <label class="toggle-control">
+              <input type="checkbox" id="opt-include-header" checked>
+              <span class="toggle-switch"></span>
+              <span class="toggle-label">Include Header Row</span>
+            </label>
+
+            <label class="toggle-control">
+              <input type="checkbox" id="opt-sanitize-formulas" checked>
+              <span class="toggle-switch"></span>
+              <span class="toggle-label" title="Prevent formula injection in Excel by quoting values starting with =, +, -, @">Sanitize Formulas</span>
+            </label>
+
+            <label class="toggle-control">
+              <input type="checkbox" id="opt-protect-numbers">
+              <span class="toggle-switch"></span>
+              <span class="toggle-label" title="Preserve leading zeros (00123) and scientific notation in Excel">Protect Leading Zeros</span>
+            </label>
+          </div>
+
+          <!-- Column Picker Section -->
+          <div class="column-picker-section">
+            <div class="column-picker-header">
+              <div>
+                <h3 class="column-picker-title">Column Selection &amp; Order</h3>
+                <p class="column-picker-subtitle">Toggle or reorder columns to customize export</p>
+              </div>
+              <div class="column-actions">
+                <button id="btn-select-all-cols" class="btn btn-ghost btn-xs">Select All</button>
+                <button id="btn-deselect-all-cols" class="btn btn-ghost btn-xs">Deselect All</button>
+                <button id="btn-reset-cols" class="btn btn-ghost btn-xs">Reset Order</button>
+              </div>
+            </div>
+            
+            <div class="column-search-bar">
+              <input type="text" id="column-search" class="form-input input-sm" placeholder="Search columns...">
+            </div>
+
+            <div id="column-list" class="column-list-container">
+              <span class="text-muted">No JSON loaded yet.</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Step 3: Preview & Export -->
+      <section class="studio-card step-card" id="step-preview" aria-labelledby="heading-step-3">
+        <div class="card-header">
+          <div class="step-badge">3</div>
+          <div class="preview-header-main">
+            <h2 id="heading-step-3" class="step-title">Preview &amp; Export</h2>
+            <p class="step-desc">Review first 50 rows and download RFC 4180 compliant CSV</p>
+          </div>
+          <div class="stats-pills" id="stats-pills">
+            <div class="stat-pill" title="Total processed rows">
+              <span class="stat-label">Rows</span>
+              <span id="stat-rows" class="stat-value">0</span>
+            </div>
+            <div class="stat-pill" title="Active export columns">
+              <span class="stat-label">Columns</span>
+              <span id="stat-columns" class="stat-value">0</span>
+            </div>
+            <div class="stat-pill" title="Estimated file size">
+              <span class="stat-label">Size</span>
+              <span id="stat-size" class="stat-value">0 B</span>
+            </div>
+            <div class="stat-pill" title="Skipped non-object records">
+              <span class="stat-label">Skipped</span>
+              <span id="stat-skipped" class="stat-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="table-wrapper">
+            <div id="table-loading" class="table-loading hidden">
+              <div class="spinner"></div>
+              <span>Processing data via Python engine...</span>
+            </div>
+            <div id="table-scroll" class="table-scroll">
+              <table id="preview-table" class="preview-table">
+                <thead>
+                  <tr id="preview-thead-tr">
+                    <th>#</th>
+                    <th class="text-muted">No data</th>
+                  </tr>
+                </thead>
+                <tbody id="preview-tbody">
+                  <tr>
+                    <td colspan="2" class="table-empty-cell">Provide JSON above to preview flattened rows.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="table-footer-note">
+            <span id="preview-note">Showing up to 50 preview rows. Full dataset included in download.</span>
+          </div>
+
+          <div class="export-bar">
+            <div class="filename-group">
+              <label for="filename-input" class="sr-only">Filename</label>
+              <div class="filename-input-wrapper">
+                <input type="text" id="filename-input" class="form-input" value="converted.csv" placeholder="filename.csv">
+                <span class="filename-ext">.csv</span>
+              </div>
+            </div>
+            
+            <div class="export-buttons">
+              <button id="btn-copy-csv" class="btn btn-secondary" title="Copy CSV to clipboard">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>Copy CSV</span>
+              </button>
+              
+              <button id="btn-download-csv" class="btn btn-primary" title="Download converted CSV file">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Download CSV</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      <div class="footer-container">
+        <p>Python 3.13 Core Engine &bull; RFC 4180 Escaping &bull; 100% Local Server</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Reverse Modal -->
+  <div id="modal-reverse" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-title" class="modal-title">Reverse: CSV to JSON Converter</h2>
+        <button id="btn-close-modal" class="btn btn-icon btn-sm" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-controls">
+          <label for="reverse-delimiter" class="form-label">CSV Delimiter:</label>
+          <select id="reverse-delimiter" class="form-select select-sm">
+            <option value="," selected>Comma ( , )</option>
+            <option value=";">Semicolon ( ; )</option>
+            <option value="&#9;">Tab ( \t )</option>
+            <option value="|">Pipe ( | )</option>
+          </select>
+        </div>
+        <div class="modal-grid">
+          <div class="modal-col">
+            <label for="reverse-csv-input" class="form-label">Input CSV:</label>
+            <textarea id="reverse-csv-input" class="code-textarea modal-textarea" placeholder="Paste CSV text here..."></textarea>
+          </div>
+          <div class="modal-col">
+            <label for="reverse-json-output" class="form-label">Converted JSON:</label>
+            <textarea id="reverse-json-output" class="code-textarea modal-textarea" readonly placeholder="Resulting JSON array..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-run-reverse" class="btn btn-primary btn-sm">Convert to JSON</button>
+        <button id="btn-copy-reverse-json" class="btn btn-secondary btn-sm">Copy JSON</button>
+        <button id="btn-load-into-editor" class="btn btn-ghost btn-sm">Send to Main Editor</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

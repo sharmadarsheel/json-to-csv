@@ -1,0 +1,30 @@
+[
+  {
+    "id": 101,
+    "user": {
+      "name": "Alice Wonderland",
+      "contact": {
+        "email": "alice@wonder.land",
+        "phone": "+1-555-0199"
+      }
+    },
+    "location": {
+      "city": "Oxford",
+      "country": "UK"
+    }
+  },
+  {
+    "id": 102,
+    "user": {
+      "name": "Bob Builder",
+      "contact": {
+        "email": "bob@builder.org",
+        "phone": "+1-555-0144"
+      }
+    },
+    "location": {
+      "city": "London",
+      "country": "UK"
+    }
+  }
+]

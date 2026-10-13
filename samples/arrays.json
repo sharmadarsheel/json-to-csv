@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "product": "Widget A",
+    "tags": ["tools", "hardware", "popular"]
+  },
+  {
+    "id": 2,
+    "product": "Widget B",
+    "tags": ["office", "stationery"]
+  }
+]

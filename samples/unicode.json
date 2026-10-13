@@ -1,0 +1,17 @@
+[
+  {
+    "greeting": "नमस्ते 😀",
+    "language": "Hindi",
+    "notes": "Unicode & emoji test"
+  },
+  {
+    "greeting": "Bonjour le monde 🥐",
+    "language": "French",
+    "notes": "Accents & emoji"
+  },
+  {
+    "greeting": "こんにちは 🌸",
+    "language": "Japanese",
+    "notes": "Kanji & Hiragana"
+  }
+]

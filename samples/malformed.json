@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "name": "Valid Object"
+  },
+  {
+    "id": 2,
+    "name": "Missing quote and comma
+    "badKey": 123
+  }
+]

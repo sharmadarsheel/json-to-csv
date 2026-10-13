@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1,
+    "name": "Alpha",
+    "tier": "Gold"
+  },
+  {
+    "id": 2,
+    "name": "Beta",
+    "score": 98.5
+  },
+  {
+    "id": 3,
+    "name": "Gamma",
+    "tier": "Silver",
+    "score": 75.0,
+    "verified": true
+  }
+]
