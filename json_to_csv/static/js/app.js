@@ -79,6 +79,11 @@ function initDom() {
   dom.validationIcon = document.getElementById('validation-icon');
   dom.validationMessage = document.getElementById('validation-message');
 
+  dom.btnConvertJson = document.getElementById('btn-convert-json');
+  dom.btnQuickConvert = document.getElementById('btn-quick-convert');
+  dom.optAutoConvert = document.getElementById('opt-auto-convert');
+  dom.conversionStatusHint = document.getElementById('conversion-status-hint');
+
   dom.optDelimiter = document.getElementById('opt-delimiter');
   dom.optSeparator = document.getElementById('opt-separator');
   dom.optArrayStrategy = document.getElementById('opt-array-strategy');
@@ -165,9 +170,20 @@ function getOptions() {
 
 let activeAbort = null;
 
+function markNeedsConversion(message) {
+  if (dom.conversionStatusHint) {
+    dom.conversionStatusHint.innerHTML = message;
+  }
+  if (dom.btnConvertJson) {
+    dom.btnConvertJson.classList.add('pulse');
+  }
+}
+
 async function processData() {
   if (!state.rawJsonText.trim()) {
     clearOutput();
+    if (dom.conversionStatusHint) dom.conversionStatusHint.textContent = 'No JSON input';
+    showToast('Please provide JSON input first', 'error');
     return;
   }
 
@@ -177,6 +193,18 @@ async function processData() {
   activeAbort = new AbortController();
 
   dom.tableLoading.classList.remove('hidden');
+
+  // Show converting state on button
+  if (dom.btnConvertJson) {
+    dom.btnConvertJson.disabled = true;
+    dom.btnConvertJson.classList.remove('pulse');
+    dom.btnConvertJson.innerHTML = `
+      <span class="btn-spinner"></span>
+      <span>Converting...</span>
+    `;
+  }
+  if (dom.btnQuickConvert) dom.btnQuickConvert.disabled = true;
+  if (dom.conversionStatusHint) dom.conversionStatusHint.textContent = 'Processing via Python...';
 
   try {
     const payload = {
@@ -197,6 +225,8 @@ async function processData() {
 
     if (!data.ok) {
       showValidation(false, data.error, data.line, data.column);
+      if (dom.conversionStatusHint) dom.conversionStatusHint.textContent = 'Conversion error';
+      showToast('Conversion failed: Check JSON syntax', 'error');
       return;
     }
 
@@ -219,11 +249,30 @@ async function processData() {
     updateStats(data.total_rows, data.total_columns, data.csv.length, data.skipped_count);
     renderColumnPicker();
     renderPreviewTable(data.preview_rows, data.effective_headers);
+    if (dom.conversionStatusHint) dom.conversionStatusHint.textContent = `Generated ${data.total_rows} row${data.total_rows === 1 ? '' : 's'}`;
+    showToast(`Converted ${data.total_rows} rows to CSV!`, 'success');
 
   } catch (err) {
     if (err.name === 'AbortError') return;
     dom.tableLoading.classList.add('hidden');
     showValidation(false, err.message);
+    if (dom.conversionStatusHint) dom.conversionStatusHint.textContent = 'Error during conversion';
+  } finally {
+    if (dom.btnConvertJson) {
+      dom.btnConvertJson.disabled = false;
+      dom.btnConvertJson.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <span id="btn-convert-text">Convert to CSV</span>
+        <kbd class="shortcut-badge">Ctrl + Enter</kbd>
+      `;
+    }
+    if (dom.btnQuickConvert) dom.btnQuickConvert.disabled = false;
   }
 }
 
@@ -333,7 +382,11 @@ function setupColumnDragAndDrop() {
         state.selectedHeaders.splice(srcIndex, 1);
         state.selectedHeaders.splice(targetIndex, 0, srcCol);
         renderColumnPicker();
-        processData();
+        if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+          processData();
+        } else {
+          markNeedsConversion('Columns reordered &bull; Click Convert to apply');
+        }
       }
     });
 
@@ -349,7 +402,11 @@ function setupColumnDragAndDrop() {
           state.selectedHeaders = state.selectedHeaders.filter(h => h !== colName);
         }
         badge.classList.toggle('disabled', !e.target.checked);
-        processData();
+        if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+          processData();
+        } else {
+          markNeedsConversion('Column selection updated &bull; Click Convert');
+        }
       });
     }
   });
@@ -363,6 +420,8 @@ function clearOutput() {
   updateStats(0, 0, 0, 0);
   renderPreviewTable([], []);
   renderColumnPicker();
+  if (dom.conversionStatusHint) dom.conversionStatusHint.textContent = 'Ready to convert';
+  if (dom.btnConvertJson) dom.btnConvertJson.classList.remove('pulse');
 }
 
 function escapeHtml(str) {
@@ -402,6 +461,37 @@ function setupEvents() {
     dom.jsonInput.focus();
   });
 
+  // Convert buttons click listeners
+  if (dom.btnConvertJson) {
+    dom.btnConvertJson.addEventListener('click', () => processData());
+  }
+  if (dom.btnQuickConvert) {
+    dom.btnQuickConvert.addEventListener('click', () => processData());
+  }
+
+  // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to convert
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      processData();
+    }
+  });
+
+  // Auto-convert toggle switch
+  if (dom.optAutoConvert) {
+    dom.optAutoConvert.addEventListener('change', () => {
+      const isAuto = dom.optAutoConvert.checked;
+      localStorage.setItem('json_to_csv_auto_convert', isAuto ? 'true' : 'false');
+      if (isAuto) {
+        showToast('Auto-convert enabled', 'info');
+        if (state.rawJsonText.trim()) processData();
+      } else {
+        showToast('Manual mode active: Click "Convert to CSV" to process', 'info');
+        if (dom.conversionStatusHint) dom.conversionStatusHint.textContent = 'Ready to convert';
+      }
+    });
+  }
+
   dom.dropzone.addEventListener('click', () => dom.fileInput.click());
   dom.dropzone.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -422,13 +512,18 @@ function setupEvents() {
 
   function handleFile(file) {
     dom.fileStatus.classList.remove('hidden');
-    dom.fileStatus.innerHTML = `<strong>${escapeHtml(file.name)}</strong> (${formatBytes(file.size)})`;
+    dom.fileStatus.innerHTML = `<strong>${escapeHtml(file.name)}</strong> (${formatBytes(file.size)}) &bull; Ready to convert`;
     const reader = new FileReader();
     reader.onload = (ev) => {
       state.rawJsonText = ev.target.result;
       dom.jsonInput.value = state.rawJsonText;
       dom.charCount.textContent = `${state.rawJsonText.length.toLocaleString()} characters`;
-      processData();
+      if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+        processData();
+      } else {
+        markNeedsConversion('File loaded &bull; Click Convert to CSV');
+        showToast('File loaded. Click "Convert to CSV" to convert.', 'info');
+      }
     };
     reader.readAsText(file);
   }
@@ -437,8 +532,12 @@ function setupEvents() {
   dom.jsonInput.addEventListener('input', () => {
     state.rawJsonText = dom.jsonInput.value;
     dom.charCount.textContent = `${state.rawJsonText.length.toLocaleString()} characters`;
-    clearTimeout(pasteDebounce);
-    pasteDebounce = setTimeout(processData, 200);
+    if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+      clearTimeout(pasteDebounce);
+      pasteDebounce = setTimeout(processData, 200);
+    } else {
+      markNeedsConversion('Unconverted changes &bull; Click Convert');
+    }
   });
 
   dom.btnFormatJson.addEventListener('click', () => {
@@ -449,7 +548,9 @@ function setupEvents() {
       state.rawJsonText = dom.jsonInput.value;
       dom.charCount.textContent = `${state.rawJsonText.length.toLocaleString()} characters`;
       showToast('JSON formatted successfully', 'success');
-      processData();
+      if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+        processData();
+      }
     } catch {
       showToast('Cannot format: invalid JSON', 'error');
     }
@@ -471,15 +572,23 @@ function setupEvents() {
       dom.jsonInput.value = jsonStr;
       dom.charCount.textContent = `${jsonStr.length.toLocaleString()} characters`;
       dom.fileStatus.classList.remove('hidden');
-      dom.fileStatus.innerHTML = `Loaded Sample: <strong>${sampleKey}.json</strong>`;
-      processData();
-      showToast(`Loaded sample "${sampleKey}"`, 'info');
+      dom.fileStatus.innerHTML = `Loaded Sample: <strong>${sampleKey}.json</strong> &bull; Click Convert`;
+      if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+        processData();
+      } else {
+        markNeedsConversion(`Loaded sample "${sampleKey}" &bull; Click Convert`);
+        showToast(`Loaded sample "${sampleKey}". Click "Convert to CSV" to convert.`, 'info');
+      }
     }
   });
 
   dom.selectObjectKey.addEventListener('change', (e) => {
     state.selectedDataKey = e.target.value;
-    processData();
+    if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+      processData();
+    } else {
+      markNeedsConversion('Collection key selected &bull; Click Convert');
+    }
   });
 
   const optionInputs = [
@@ -498,26 +607,42 @@ function setupEvents() {
   optionInputs.forEach(el => {
     el.addEventListener('change', () => {
       dom.groupArrayJoiner.style.display = dom.optArrayStrategy.value === 'join' ? 'flex' : 'none';
-      processData();
+      if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+        processData();
+      } else if (state.lastGeneratedCsv) {
+        markNeedsConversion('Options updated &bull; Click Convert to re-run');
+      }
     });
   });
 
   dom.btnSelectAllCols.addEventListener('click', () => {
     state.selectedHeaders = [...state.allHeaders];
     renderColumnPicker();
-    processData();
+    if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+      processData();
+    } else {
+      markNeedsConversion('Columns changed &bull; Click Convert to apply');
+    }
   });
 
   dom.btnDeselectAllCols.addEventListener('click', () => {
     state.selectedHeaders = [];
     renderColumnPicker();
-    processData();
+    if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+      processData();
+    } else {
+      markNeedsConversion('Columns changed &bull; Click Convert to apply');
+    }
   });
 
   dom.btnResetCols.addEventListener('click', () => {
     state.selectedHeaders = [...state.allHeaders];
     renderColumnPicker();
-    processData();
+    if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+      processData();
+    } else {
+      markNeedsConversion('Columns reset &bull; Click Convert to apply');
+    }
   });
 
   dom.columnSearch.addEventListener('input', () => {
@@ -526,7 +651,7 @@ function setupEvents() {
 
   dom.btnCopyCsv.addEventListener('click', async () => {
     if (!state.lastGeneratedCsv) {
-      showToast('No CSV data available to copy', 'error');
+      showToast('No CSV data available to copy - Convert first', 'error');
       return;
     }
     await navigator.clipboard.writeText(state.lastGeneratedCsv);
@@ -535,7 +660,7 @@ function setupEvents() {
 
   dom.btnDownloadCsv.addEventListener('click', () => {
     if (!state.lastGeneratedCsv) {
-      showToast('No CSV data available to download', 'error');
+      showToast('No CSV data available to download - Convert first', 'error');
       return;
     }
     let filename = dom.filenameInput.value.trim() || 'converted.csv';
@@ -597,7 +722,11 @@ function setupEvents() {
     dom.charCount.textContent = `${val.length.toLocaleString()} characters`;
     dom.modalReverse.classList.add('hidden');
     dom.tabPaste.click();
-    processData();
+    if (dom.optAutoConvert && dom.optAutoConvert.checked) {
+      processData();
+    } else {
+      markNeedsConversion('Reversed JSON loaded &bull; Click Convert');
+    }
     showToast('JSON loaded into main editor!', 'info');
   });
 }
@@ -610,5 +739,21 @@ document.addEventListener('DOMContentLoaded', () => {
   state.rawJsonText = initial;
   dom.jsonInput.value = initial;
   dom.charCount.textContent = `${initial.length.toLocaleString()} characters`;
-  processData();
+
+  // Set initial table state awaiting user to click Convert
+  dom.previewTheadTr.innerHTML = '<th>#</th><th class="text-muted">Awaiting Conversion</th>';
+  dom.previewTbody.innerHTML = '<tr><td colspan="2" class="table-empty-cell">Click <strong>Convert to CSV</strong> above to process JSON and preview results.</td></tr>';
+  if (dom.conversionStatusHint) {
+    dom.conversionStatusHint.textContent = 'Ready to convert';
+  }
+
+  // Restore auto-convert setting if saved, otherwise default is false (manual conversion)
+  const savedAuto = localStorage.getItem('json_to_csv_auto_convert') === 'true';
+  if (dom.optAutoConvert) {
+    dom.optAutoConvert.checked = savedAuto;
+  }
+
+  if (savedAuto) {
+    processData();
+  }
 });
